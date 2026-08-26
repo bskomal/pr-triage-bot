@@ -43,7 +43,7 @@ class QualityScore:
     def emoji(self) -> str:
         return {
             "excellent": "🌟",
-            "good": "βœ…",
+            "good": "✅",
             "needs-work": "⚠️",
             "poor": "❌",
         }.get(self.tier, "❓")

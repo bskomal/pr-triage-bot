@@ -187,10 +187,10 @@ TRIAGE DATA:
 {triage_data}
 
 Create a digest with:
-1. πŸ"₯ Critical Items (needs action today)
-2. πŸ'€ Needs Review (good PRs waiting)
+1. 🚨 Critical Items (needs action today)
+2. 👀 Needs Review (good PRs waiting)
 3. ⚠️ Flagged Items (ai slop, low quality)
-4. πŸ"‹ Summary Stats
+4. 📋 Summary Stats
 
 Be specific about PR/Issue numbers. Be actionable.""",
 )

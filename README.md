@@ -1,4 +1,4 @@
-# πŸ€– PR Triage Bot
+# 🤖 PR Triage Bot
 
 > AI-powered maintainer co-pilot for GitHub repositories.
 > Stop drowning in pull requests. Start shipping.
@@ -24,12 +24,12 @@ GitHub added 36M developers in 2025. Maintainers now face:
 
 | Feature | Description |
 |---------|-------------|
-| πŸ†• Auto-label | Type, priority, complexity on every PR/Issue |
+| 🏷️ Auto-label | Type, priority, complexity on every PR/Issue |
 | 🚫 Slop detection | Flag AI-generated junk before it wastes your time |
-| πŸ"Š Quality scoring | 0-100 score across 6 dimensions |
-| πŸ" Duplicate detection | Semantic duplicate issue detection |
-| πŸ"… Daily digest | "Here's what actually needs your eyes today" |
-| πŸ" Privacy-first | Runs on local Ollama by default |
+| 📊 Quality scoring | 0-100 score across 6 dimensions |
+| 🔍 Duplicate detection | Semantic duplicate issue detection |
+| 📅 Daily digest | "Here's what actually needs your eyes today" |
+| 🔒 Privacy-first | Runs on local Ollama by default |
 | 🐳 Self-hostable | Full Docker support |
 
 ---
@@ -67,16 +67,16 @@ jobs:
 
 ```bash
 # Install
-pip install pr-triage-bot
+pip install -r requirements.txt
 
 # Run triage
-triage triage --repo owner/repo --token ghp_xxx
+python -m src.cli.main triage --repo owner/repo --token ghp_xxx
 
 # Analyze single PR
-triage analyze-pr --repo owner/repo --pr 42
+python -m src.cli.main analyze-pr --repo owner/repo --pr 42
 
 # Dry run (preview only)
-triage triage --repo owner/repo --dry-run
+python -m src.cli.main triage --repo owner/repo --dry-run
 ```
 
 ### Option 3 — Docker
@@ -98,44 +98,26 @@ docker-compose -f docker/docker-compose.yml up
 Create `config/triage.yml` in your repository:
 
 ```yaml
-bot:
-  dry_run: false
-
-ai:
-  provider: ollama       # Local by default (privacy-first)
-  model: llama3.2
-
-slop_detection:
-  enabled: true
-  threshold: 0.75        # 0-1, higher = more aggressive
-
-scoring:
-  weights:
-    has_tests: 25
-    has_docs: 20
-    description_quality: 20
-
-digest:
-  enabled: true
-  output_format: markdown
+rules:
+  auto_close_slop: false
+  min_quality_score: 50
+  auto_label: true
 ```
 
 ---
 
-## Quality Score
+## Quality Scoring Dimensions
 
-Every PR receives a score across 6 dimensions:
-
-| Dimension | Weight | What it checks |
-|-----------|--------|---------------|
-| Test Coverage | 25% | Test files included |
-| Description Quality | 20% | Length, structure, specificity |
-| Documentation | 20% | Docs updated |
-| Scope Focus | 15% | PR size appropriate |
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| Description | 20% | Quality and detail of PR description |
+| Test Coverage | 25% | Presence and quality of unit tests |
+| Documentation | 20% | Docs updated alongside code |
+| Scope Focus | 15% | Focused, atomic changes |
 | Commit Quality | 10% | Conventional commits |
 | Issue Linkage | 10% | Linked to an issue |
 
-**Tiers:** 🌟 Excellent (80+) | βœ… Good (60+) | ⚠️ Needs Work (40+) | ❌ Poor (<40)
+**Tiers:** 🌟 Excellent (80+) | ✅ Good (60+) | ⚠️ Needs Work (40+) | ❌ Poor (<40)
 
 ---
 
@@ -164,21 +146,21 @@ PR Triage Bot is **privacy-first by design**:
 
 ```
 GitHub Action / CLI
-       β"‚
-       β–Ό
+       │
+       ▼
    Analyzer (orchestrator)
-    β"œβ"€β"€ SlopDetector (heuristic + LLM)
-    β"œβ"€β"€ PRScorer (6-dimension quality)
-    β"œβ"€β"€ Classifier (type + priority)
+    ├── SlopDetector (heuristic + LLM)
+    ├── PRScorer (6-dimension quality)
+    ├── Classifier (type + priority)
     └── DuplicateDetector (semantic)
-       β"‚
-       β–Ό
+       │
+       ▼
    LLMClient (Ollama / OpenAI)
-       β"‚
-       β–Ό
+       │
+       ▼
    GitHubClient (labels + comments)
-       β"‚
-       β–Ό
+       │
+       ▼
    DigestGenerator (markdown/slack/discord)
 ```
 

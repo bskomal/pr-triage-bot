@@ -16,12 +16,12 @@ logger = structlog.get_logger(__name__)
 
 
 DIGEST_TEMPLATE = """
-# πŸ"‹ Triage Digest — {{ repo }}
+# 📋 Triage Digest — {{ repo }}
 **Generated:** {{ date }} | **Period:** Last 24 hours
 
 ---
 
-## πŸ"₯ Critical Items (Action Required Today)
+## 🚨 Critical Items (Action Required Today)
 {% if critical_prs %}
 {% for pr in critical_prs %}
 - **PR #{{ pr.pr.number }}** — [{{ pr.pr.title }}]({{ pr.pr.url }})
@@ -29,12 +29,12 @@ DIGEST_TEMPLATE = """
   - Author: @{{ pr.pr.author }} | Changes: +{{ pr.pr.additions }}/-{{ pr.pr.deletions }}
 {% endfor %}
 {% else %}
-βœ… No critical items today.
+✅ No critical items today.
 {% endif %}
 
 ---
 
-## πŸ'€ Ready for Review (High Quality PRs)
+## 👀 Ready for Review (High Quality PRs)
 {% if excellent_prs %}
 {% for pr in excellent_prs %}
 - **PR #{{ pr.pr.number }}** — [{{ pr.pr.title }}]({{ pr.pr.url }})
@@ -56,12 +56,12 @@ _No high-quality PRs awaiting review._
   - Author: @{{ pr.pr.author }}
 {% endfor %}
 {% else %}
-βœ… No flagged items.
+✅ No flagged items.
 {% endif %}
 
 ---
 
-## πŸ" Duplicate Issues Closed
+## 🔍 Duplicate Issues Closed
 {% if duplicate_issues %}
 {% for issue in duplicate_issues %}
 - **Issue #{{ issue.issue.number }}** — {{ issue.issue.title }}
@@ -74,7 +74,7 @@ _No duplicate issues detected._
 
 ---
 
-## πŸ"Š Summary Stats
+## 📊 Summary Stats
 | Metric | Count |
 |--------|-------|
 | PRs Analyzed | {{ stats.total_prs_analyzed }} |
@@ -140,21 +140,21 @@ class DigestGenerator:
     def _render_slack(self, report: TriageReport) -> str:
         """Render Slack-formatted digest (plain text with emoji)."""
         lines = [
-            f"πŸ"‹ *Triage Digest — {report.repo}*",
+            f"📋 *Triage Digest — {report.repo}*",
             f"_{report.generated_at.strftime('%Y-%m-%d')} | {len(report.pr_results)} PRs, {len(report.issue_results)} Issues_",
             "",
         ]
 
         if report.critical_prs:
-            lines.append(f"*πŸ"₯ Critical ({len(report.critical_prs)}):*")
+            lines.append(f"*🚨 Critical ({len(report.critical_prs)}):*")
             for pr in report.critical_prs[:5]:
-                lines.append(f"  β€' <{pr.pr.url}|PR #{pr.pr.number}>: {pr.pr.title[:60]}")
+                lines.append(f"  • <{pr.pr.url}|PR #{pr.pr.number}>: {pr.pr.title[:60]}")
             lines.append("")
 
         if report.flagged_prs:
             lines.append(f"*⚠️ Flagged ({len(report.flagged_prs)}):*")
             for pr in report.flagged_prs[:5]:
-                lines.append(f"  β€' <{pr.pr.url}|PR #{pr.pr.number}>: {pr.pr.title[:60]}")
+                lines.append(f"  • <{pr.pr.url}|PR #{pr.pr.number}>: {pr.pr.title[:60]}")
             lines.append("")
 
         stats = report.stats
@@ -171,13 +171,13 @@ class DigestGenerator:
         """Render Discord-formatted digest."""
         # Discord uses markdown but with different embed style
         lines = [
-            f"## πŸ"‹ Triage Digest — `{report.repo}`",
+            f"## 📋 Triage Digest — `{report.repo}`",
             f"> {report.generated_at.strftime('%Y-%m-%d %H:%M UTC')}",
             "",
         ]
 
         if report.critical_prs:
-            lines.append(f"### πŸ"₯ Critical PRs")
+            lines.append(f"### 🚨 Critical PRs")
             for pr in report.critical_prs[:5]:
                 lines.append(f"- **#{pr.pr.number}** [{pr.pr.title[:60]}]({pr.pr.url})")
             lines.append("")
@@ -190,13 +190,12 @@ class DigestGenerator:
 
         stats = report.stats
         lines.extend([
-            "### πŸ"Š Stats",
-            f"```",
+            "### 📊 Stats",
+            "```",
             f"PRs Analyzed:    {stats['total_prs_analyzed']}",
             f"Slop Flagged:    {stats['slop_flagged']}",
             f"Critical:        {stats['critical_prs']}",
             f"Avg Quality:     {stats['avg_quality_score']}/100",
-            f"```",
+            "```",
         ])
-
         return "\n".join(lines)

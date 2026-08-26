@@ -475,7 +475,7 @@ class Analyzer:
         """Build auto-reply for an issue."""
         if is_duplicate and duplicate_of:
             return (
-                f"πŸ€– **PR Triage Bot**\n\n"
+                f"🤖 **PR Triage Bot**\n\n"
                 f"This issue appears to be a duplicate of #{duplicate_of}.\n"
                 f"Please check that issue for existing discussion and updates.\n\n"
                 f"_If you believe this is different, please explain how in a comment._"
@@ -486,7 +486,7 @@ class Analyzer:
             if missing:
                 items = "\n".join(f"- {item}" for item in missing)
                 return (
-                    f"πŸ€– **PR Triage Bot**\n\n"
+                    f"🤖 **PR Triage Bot**\n\n"
                     f"Thanks for the report! To help us investigate, we need:\n\n"
                     f"{items}\n\n"
                     f"_Please update the issue with this information._"
@@ -497,7 +497,7 @@ class Analyzer:
     def _render_slop_reply(self, pr: PRData, slop: SlopResult) -> str:
         signals = "\n".join(f"- {s}" for s in slop.signal_names[:5])
         return (
-            f"πŸ€– **PR Triage Bot — Quality Review**\n\n"
+            f"🤖 **PR Triage Bot — Quality Review**\n\n"
             f"This PR has been flagged for quality review before maintainer time is spent on it.\n\n"
             f"**Signals detected:**\n{signals}\n\n"
             f"**To get this PR reviewed:**\n"
@@ -509,7 +509,7 @@ class Analyzer:
 
     def _render_quality_reply(self, pr: PRData, score: QualityScore) -> str:
         return (
-            f"πŸ€– **PR Triage Bot — Quality Feedback**\n\n"
+            f"🤖 **PR Triage Bot — Quality Feedback**\n\n"
             f"**Quality Score: {score.overall}/100** ({score.tier})\n\n"
             f"**Feedback:** {score.feedback}\n\n"
             f"| Dimension | Score |\n"
