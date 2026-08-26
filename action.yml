@@ -1,0 +1,105 @@
+name: 'PR Triage Bot'
+description: 'AI-powered PR and issue triage for GitHub repositories'
+author: 'PR Triage Bot'
+
+branding:
+  icon: 'git-pull-request'
+  color: 'blue'
+
+inputs:
+  github-token:
+    description: 'GitHub token for API access'
+    required: true
+  
+  openai-api-key:
+    description: 'OpenAI API key (fallback if Ollama unavailable)'
+    required: false
+    default: ''
+  
+  ai-provider:
+    description: 'AI provider: ollama or openai'
+    required: false
+    default: 'ollama'
+  
+  ai-model:
+    description: 'AI model to use'
+    required: false
+    default: 'llama3.2'
+  
+  max-prs:
+    description: 'Maximum number of PRs to analyze'
+    required: false
+    default: '50'
+  
+  max-issues:
+    description: 'Maximum number of issues to analyze'
+    required: false
+    default: '100'
+  
+  dry-run:
+    description: 'Run without making changes (preview mode)'
+    required: false
+    default: 'false'
+  
+  output-format:
+    description: 'Digest output format: markdown, slack, discord'
+    required: false
+    default: 'markdown'
+  
+  slop-threshold:
+    description: 'Slop detection threshold (0.0-1.0)'
+    required: false
+    default: '0.75'
+
+outputs:
+  digest-path:
+    description: 'Path to the generated digest file'
+  
+  critical-prs:
+    description: 'Number of critical PRs found'
+  
+  flagged-prs:
+    description: 'Number of flagged PRs found'
+  
+  avg-quality-score:
+    description: 'Average quality score across all PRs'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install PR Triage Bot
+      shell: bash
+      run: |
+        pip install pr-triage-bot
+        # Or from source:
+        # pip install -e "."
+
+    - name: Setup Ollama (if using local AI)
+      if: inputs.ai-provider == 'ollama'
+      shell: bash
+      run: |
+        curl -fsSL https://ollama.ai/install.sh | sh
+        ollama serve &
+        sleep 10
+        ollama pull ${{ inputs.ai-model }} || echo "Model pull failed, will try OpenAI fallback"
+
+    - name: Run Triage
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+      run: |
+        triage triage \
+          --repo "${{ github.repository }}" \
+          --provider "${{ inputs.ai-provider }}" \
+          --model "${{ inputs.ai-model }}" \
+          --max-prs "${{ inputs.max-prs }}" \
+          --max-issues "${{ inputs.max-issues }}" \
+          --output "${{ inputs.output-format }}" \
+          ${{ inputs.dry-run == 'true' && '--dry-run' || '' }}

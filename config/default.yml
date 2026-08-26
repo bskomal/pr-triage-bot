@@ -1,0 +1,127 @@
+# PR Triage Bot — Default Configuration
+
+bot:
+  name: "PR Triage Bot"
+  version: "1.0.0"
+  dry_run: false          # Set true to preview without making changes
+
+ai:
+  provider: "ollama"      # "ollama" | "openai" | "anthropic"
+  model: "llama3.2"       # Local model via Ollama
+  fallback_model: "gpt-4o-mini"
+  temperature: 0.1        # Low temp for consistent classification
+  max_tokens: 1024
+  timeout_seconds: 30
+
+github:
+  max_prs_per_run: 50
+  max_issues_per_run: 100
+  rate_limit_buffer: 100  # Stop when this many requests remain
+
+scoring:
+  weights:
+    has_tests: 25
+    has_docs: 20
+    description_quality: 20
+    scope_appropriateness: 15
+    commit_message_quality: 10
+    linked_issue: 10
+
+slop_detection:
+  enabled: true
+  threshold: 0.75         # 0-1, higher = more aggressive flagging
+  signals:
+    - generic_commit_messages
+    - no_tests_added
+    - description_template_unchanged
+    - excessive_whitespace_changes
+    - ai_phrase_patterns
+    - copy_paste_patterns
+
+labels:
+  auto_create: true       # Create labels if they don't exist
+  
+  priority:
+    - name: "priority: critical"
+      color: "d73a4a"
+      description: "Needs immediate attention"
+    - name: "priority: high"
+      color: "e4e669"
+      description: "Should be addressed soon"
+    - name: "priority: medium"
+      color: "0075ca"
+      description: "Normal priority"
+    - name: "priority: low"
+      color: "cfd3d7"
+      description: "Nice to have"
+
+  type:
+    - name: "type: bug"
+      color: "d73a4a"
+      description: "Something isn't working"
+    - name: "type: feature"
+      color: "a2eeef"
+      description: "New feature or request"
+    - name: "type: docs"
+      color: "0075ca"
+      description: "Documentation changes"
+    - name: "type: refactor"
+      color: "e4e669"
+      description: "Code refactoring"
+    - name: "type: test"
+      color: "d4edda"
+      description: "Test additions or fixes"
+    - name: "type: chore"
+      color: "cfd3d7"
+      description: "Maintenance tasks"
+    - name: "type: security"
+      color: "b60205"
+      description: "Security related"
+
+  quality:
+    - name: "quality: excellent"
+      color: "0e8a16"
+      description: "High quality contribution"
+    - name: "quality: good"
+      color: "5cb85c"
+      description: "Good contribution"
+    - name: "quality: needs-work"
+      color: "e4e669"
+      description: "Needs improvement"
+    - name: "quality: ai-generated"
+      color: "f9d0c4"
+      description: "Suspected AI-generated content"
+
+  status:
+    - name: "status: duplicate"
+      color: "cfd3d7"
+      description: "Duplicate issue or PR"
+    - name: "status: needs-triage"
+      color: "e4e669"
+      description: "Awaiting triage"
+    - name: "status: triaged"
+      color: "0e8a16"
+      description: "Has been triaged"
+
+digest:
+  enabled: true
+  schedule: "0 9 * * 1-5"    # 9 AM weekdays
+  output_format: "markdown"   # "markdown" | "slack" | "discord"
+  max_items_per_section: 10
+  sections:
+    - critical_prs
+    - needs_review
+    - stale_items
+    - ai_slop_flagged
+    - new_contributors
+
+responses:
+  duplicate_issue:
+    enabled: true
+    template: "duplicate_issue.md"
+  low_quality_pr:
+    enabled: true
+    template: "low_quality_pr.md"
+  missing_info:
+    enabled: true
+    template: "missing_info.md"

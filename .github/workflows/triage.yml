@@ -1,0 +1,136 @@
+name: PR Triage Bot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [opened, reopened]
+  schedule:
+    # Run full triage daily at 9 AM UTC on weekdays
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no changes)'
+        required: false
+        default: 'false'
+      max_prs:
+        description: 'Max PRs to analyze'
+        required: false
+        default: '50'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  # ─────────────────────────────
+  # Triggered on new PR/Issue
+  # ─────────────────────────────
+  single-item-triage:
+    name: Triage New Item
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'issues'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.ai/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull llama3.2
+
+      - name: Triage PR
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          triage analyze-pr \
+            --repo "${{ github.repository }}" \
+            --pr "${{ github.event.pull_request.number }}" \
+            ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+
+      - name: Triage Issue
+        if: github.event_name == 'issues'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          triage triage \
+            --repo "${{ github.repository }}" \
+            --max-prs 0 \
+            --max-issues 10 \
+            ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+
+  # ─────────────────────────────
+  # Daily full triage
+  # ─────────────────────────────
+  daily-triage:
+    name: Daily Full Triage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -e "."
+
+      - name: Install Ollama (with fallback to OpenAI)
+        run: |
+          curl -fsSL https://ollama.ai/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull llama3.2 || echo "Ollama model pull failed, will use OpenAI fallback"
+
+      - name: Run Full Triage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          triage triage \
+            --repo "${{ github.repository }}" \
+            --max-prs ${{ github.event.inputs.max_prs || '50' }} \
+            --max-issues 100 \
+            --output markdown \
+            ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+
+      - name: Upload Digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-digest-${{ github.run_number }}
+          path: triage-digest-*.md
+          retention-days: 30
+
+      - name: Post Digest as Issue Comment
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DIGEST_FILE=$(ls triage-digest-*.md | head -1)
+          if [ -f "$DIGEST_FILE" ]; then
+            gh issue create \
+              --title "πŸ"‹ Daily Triage Digest — $(date +%Y-%m-%d)" \
+              --body-file "$DIGEST_FILE" \
+              --label "triage-digest" || echo "Could not create digest issue"
+          fi

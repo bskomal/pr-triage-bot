@@ -1,0 +1,131 @@
+# ==========================================
+# Environment & Secrets (CRITICAL)
+# ==========================================
+# Ignore environment files containing secret tokens and API keys
+.env
+.env.*
+!.env.example
+*.env
+
+# API Keys, certificates, and private credentials
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+id_rsa*
+id_ed25519*
+secrets/
+*.secret
+*.pem.key
+
+# ==========================================
+# Python & Bytecode Caches
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Build & distribution packages
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==========================================
+# Testing, Quality & Coverage
+# ==========================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.nox/
+.tox/
+.hypothesis/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.ruff_cache/
+.mypy_cache/
+.pytype/
+
+# ==========================================
+# Virtual Environments
+# ==========================================
+venv/
+v-env/
+ENV/
+env/
+env.bak/
+venv.bak/
+.venv/
+
+# ==========================================
+# Generated Digest & Output Files
+# ==========================================
+# Ignore generated PR digest Markdown and export files
+/digest_*.md
+/digest_*.html
+/output/
+/digests/
+*.digest.md
+
+# ==========================================
+# Docker Data & Volumes
+# ==========================================
+.docker/
+docker-volumes/
+*.tar
+*.tar.gz
+
+# ==========================================
+# IDEs & Editor Configuration
+# ==========================================
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (PyCharm, WebStorm, etc.)
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Visual Studio & Other Editors
+.vs/
+.project
+.pydevproject
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Trashes
+ehthumbs.db
+Thumbs.db

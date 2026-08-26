@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "pr-triage-bot"
+version = "1.0.0"
+description = "AI-powered maintainer co-pilot for GitHub repositories"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["github", "open-source", "ai", "automation", "devtools"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "PyGithub>=2.1.1",
+    "click>=8.1.7",
+    "httpx>=0.26.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "PyYAML>=6.0.1",
+    "rich>=13.7.0",
+    "ollama>=0.1.7",
+    "openai>=1.12.0",
+    "python-dotenv>=1.0.0",
+    "tiktoken>=0.6.0",
+    "scikit-learn>=1.4.0",
+    "numpy>=1.26.0",
+    "jinja2>=3.1.3",
+    "tenacity>=8.2.3",
+    "structlog>=24.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.1.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+    "httpx[mock]>=0.26.0",
+]
+
+[project.scripts]
+triage = "src.cli.main:cli"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--cov=src --cov-report=term-missing"
