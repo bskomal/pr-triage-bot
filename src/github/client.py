@@ -3,13 +3,14 @@ GitHub API client — wraps PyGithub with rate limiting,
 caching, and clean data models.
 """
 
-import asyncio
+import re
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Generator, Optional
+from typing import Optional
 
 import structlog
-from github import Github, GithubException, RateLimitExceededException
+from github import Github, GithubException
 from github.PullRequest import PullRequest
 from github.Issue import Issue
 
@@ -36,11 +37,6 @@ class PRData:
     existing_labels: list[str]
     url: str
     head_sha: str
-
-    @property
-    def diff_sample(self) -> str:
-        """Sample of the diff for analysis (first 2000 chars)."""
-        return ""  # Populated separately when needed
 
 
 @dataclass
@@ -106,22 +102,25 @@ class GitHubClient:
         self._check_rate_limit()
 
         pulls = []
-        for pr in self.repo.get_pulls(state="open", sort="updated", direction="desc"):
-            if len(pulls) >= max_count:
-                break
+        try:
+            for pr in self.repo.get_pulls(state="open", sort="updated", direction="desc"):
+                if len(pulls) >= max_count:
+                    break
 
-            if skip_drafts and pr.draft:
-                logger.debug("Skipping draft PR", pr_number=pr.number)
-                continue
+                if skip_drafts and pr.draft:
+                    logger.debug("Skipping draft PR", pr_number=pr.number)
+                    continue
 
-            try:
-                pulls.append(self._normalize_pr(pr))
-            except Exception as e:
-                logger.error(
-                    "Failed to normalize PR",
-                    pr_number=pr.number,
-                    error=str(e),
-                )
+                try:
+                    pulls.append(self._normalize_pr(pr))
+                except Exception as e:
+                    logger.error(
+                        "Failed to normalize PR",
+                        pr_number=pr.number,
+                        error=str(e),
+                    )
+        except Exception as e:
+            logger.error("Failed to fetch open PRs", error=str(e))
 
         logger.info("Fetched open PRs", count=len(pulls))
         return pulls
@@ -135,22 +134,24 @@ class GitHubClient:
         self._check_rate_limit()
 
         issues = []
-        for issue in self.repo.get_issues(state="open", sort="updated", direction="desc"):
-            if len(issues) >= max_count:
-                break
+        try:
+            for issue in self.repo.get_issues(state="open", sort="updated", direction="desc"):
+                if len(issues) >= max_count:
+                    break
 
-            # GitHub returns PRs as issues — filter them out
-            if exclude_prs and issue.pull_request:
-                continue
+                if exclude_prs and issue.pull_request:
+                    continue
 
-            try:
-                issues.append(self._normalize_issue(issue))
-            except Exception as e:
-                logger.error(
-                    "Failed to normalize issue",
-                    issue_number=issue.number,
-                    error=str(e),
-                )
+                try:
+                    issues.append(self._normalize_issue(issue))
+                except Exception as e:
+                    logger.error(
+                        "Failed to normalize issue",
+                        issue_number=issue.number,
+                        error=str(e),
+                    )
+        except Exception as e:
+            logger.error("Failed to fetch open issues", error=str(e))
 
         logger.info("Fetched open issues", count=len(issues))
         return issues
@@ -214,20 +215,23 @@ class GitHubClient:
 
     def ensure_labels_exist(self, label_configs: list[dict]) -> None:
         """Create labels if they don't exist in the repo."""
-        existing = {label.name for label in self.repo.get_labels()}
+        try:
+            existing = {label.name for label in self.repo.get_labels()}
 
-        for label_config in label_configs:
-            name = label_config["name"]
-            if name not in existing:
-                try:
-                    self.repo.create_label(
-                        name=name,
-                        color=label_config.get("color", "ededed"),
-                        description=label_config.get("description", ""),
-                    )
-                    logger.info("Created label", name=name)
-                except GithubException as e:
-                    logger.warning("Failed to create label", name=name, error=str(e))
+            for label_config in label_configs:
+                name = label_config["name"]
+                if name not in existing:
+                    try:
+                        self.repo.create_label(
+                            name=name,
+                            color=label_config.get("color", "ededed"),
+                            description=label_config.get("description", ""),
+                        )
+                        logger.info("Created label", name=name)
+                    except GithubException as e:
+                        logger.warning("Failed to create label", name=name, error=str(e))
+        except Exception as e:
+            logger.warning("Failed to fetch existing labels", error=str(e))
 
     def get_pr_diff_sample(self, pr_number: int, max_chars: int = 2000) -> str:
         """Fetch a sample of the PR diff for analysis."""
@@ -255,9 +259,8 @@ class GitHubClient:
         open_prs = self.repo.get_pulls(state="open").totalCount
         open_issues = self.repo.get_issues(
             state="open"
-        ).totalCount - open_prs  # Issues minus PRs
+        ).totalCount - open_prs
 
-        # Count items needing triage (no labels)
         needs_triage = sum(
             1 for issue in self.repo.get_issues(state="open")
             if not issue.pull_request and len(list(issue.labels)) == 0
@@ -266,7 +269,7 @@ class GitHubClient:
         return RepoStats(
             open_prs=open_prs,
             open_issues=max(open_issues, 0),
-            stale_prs=0,  # Calculated separately
+            stale_prs=0,
             needs_triage=needs_triage,
         )
 
@@ -312,7 +315,6 @@ class GitHubClient:
 
     def _extract_issue_numbers(self, text: str) -> list[int]:
         """Extract referenced issue numbers from PR body."""
-        import re
         pattern = r"(?:closes|fixes|resolves|related to)\s+#(\d+)"
         matches = re.findall(pattern, text, re.IGNORECASE)
         return [int(m) for m in matches]
@@ -332,7 +334,6 @@ class GitHubClient:
                     remaining=remaining,
                     wait_seconds=wait_seconds,
                 )
-                import time
                 time.sleep(min(wait_seconds, 3600))
 
         except Exception as e:

@@ -3,6 +3,7 @@ PR Quality Scorer — Multi-dimensional contribution quality assessment.
 Produces a 0-100 score with breakdown per dimension.
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -13,30 +14,32 @@ from src.ai.prompts import SCORE_QUALITY
 
 logger = structlog.get_logger(__name__)
 
-# File extensions that count as test files
-TEST_EXTENSIONS = {".test.py", ".spec.py", "_test.py", "test_.py"}
-TEST_DIRECTORIES = {"test", "tests", "__tests__", "spec", "specs"}
+TEST_DIRECTORIES = {
+    "test", "tests", "__tests__", "spec", "specs"
+}
 DOC_FILES = {
     "readme.md", "changelog.md", "contributing.md",
-    "docs/", "documentation/", ".rst", ".mdx",
+    "docs/", "documentation/",
 }
 
 
 @dataclass
 class ScoreDimension:
     name: str
-    score: int          # 0-100
-    weight: float       # contribution to overall score
+    score: int
+    weight: float
     reason: str = ""
 
 
 @dataclass
 class QualityScore:
-    overall: int                                    # 0-100
-    tier: str                                       # excellent|good|needs-work|poor
-    dimensions: list[ScoreDimension] = field(default_factory=list)
-    label: str = ""                                 # GitHub label to apply
-    feedback: str = ""                              # Actionable feedback for contributor
+    overall: int
+    tier: str
+    dimensions: list[ScoreDimension] = field(
+        default_factory=list
+    )
+    label: str = ""
+    feedback: str = ""
     breakdown: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -52,14 +55,6 @@ class QualityScore:
 class PRScorer:
     """
     Scores pull requests across multiple quality dimensions.
-    
-    Dimensions:
-    - Description quality (20%)
-    - Test coverage (25%)
-    - Documentation (20%)
-    - Scope focus (15%)
-    - Commit message quality (10%)
-    - Linked issue (10%)
     """
 
     DIMENSION_WEIGHTS = {
@@ -71,7 +66,10 @@ class PRScorer:
         "linked_issue": 0.10,
     }
 
-    def __init__(self, llm_client: Optional[LLMClient] = None):
+    def __init__(
+        self,
+        llm_client: Optional[LLMClient] = None
+    ):
         self.llm = llm_client
 
     async def score(
@@ -85,11 +83,18 @@ class PRScorer:
         commit_messages: list[str],
         linked_issues: list[int],
     ) -> QualityScore:
-        """
-        Score a PR across all quality dimensions.
-        Combines heuristic + LLM scoring.
-        """
+        """Score a PR across all quality dimensions."""
         logger.info("Scoring PR quality", title=title[:60])
+
+        # Safe defaults
+        title = title or ""
+        description = description or ""
+        body = body or ""
+        files_changed = files_changed or []
+        additions = additions or 0
+        deletions = deletions or 0
+        commit_messages = commit_messages or []
+        linked_issues = linked_issues or []
 
         test_files = self._identify_test_files(files_changed)
         doc_files = self._identify_doc_files(files_changed)
@@ -97,13 +102,21 @@ class PRScorer:
         dimensions = [
             self._score_description(description, body),
             self._score_tests(test_files, files_changed),
-            self._score_documentation(doc_files, files_changed, description),
-            self._score_scope(files_changed, additions, deletions),
+            self._score_documentation(
+                doc_files, files_changed, description
+            ),
+            self._score_scope(
+                files_changed, additions, deletions
+            ),
             self._score_commits(commit_messages),
-            self._score_issue_linkage(linked_issues, description, body),
+            self._score_issue_linkage(
+                linked_issues, description, body
+            ),
         ]
 
-        # LLM enhancement for description and test scoring
+        feedback = self._generate_feedback(dimensions)
+
+        # LLM enhancement if available
         if self.llm:
             try:
                 llm_scores = await self._llm_score(
@@ -115,13 +128,16 @@ class PRScorer:
                     test_files=test_files,
                     description_length=len(description),
                 )
-                dimensions = self._merge_llm_scores(dimensions, llm_scores)
-                feedback = llm_scores.get("feedback", "")
+                dimensions = self._merge_llm_scores(
+                    dimensions, llm_scores
+                )
+                if llm_scores.get("feedback"):
+                    feedback = llm_scores["feedback"]
             except Exception as e:
-                logger.warning("LLM scoring failed, using heuristics only", error=str(e))
-                feedback = self._generate_feedback(dimensions)
-        else:
-            feedback = self._generate_feedback(dimensions)
+                logger.warning(
+                    "LLM scoring failed — using heuristics",
+                    error=str(e)
+                )
 
         overall = self._compute_overall(dimensions)
         tier = self._compute_tier(overall)
@@ -140,36 +156,47 @@ class PRScorer:
             "Scoring complete",
             overall=overall,
             tier=tier,
-            label=label,
         )
 
         return result
 
-    def _identify_test_files(self, files: list[str]) -> list[str]:
+    def _identify_test_files(
+        self, files: list[str]
+    ) -> list[str]:
         """Find test files in the changed file list."""
         test_files = []
         for f in files:
             fname = f.lower()
-            if any(d in fname.split("/") for d in TEST_DIRECTORIES):
+            parts = fname.replace("\\", "/").split("/")
+            if any(d in parts for d in TEST_DIRECTORIES):
                 test_files.append(f)
-            elif fname.startswith("test_") or fname.endswith("_test.py"):
-                test_files.append(f)
-            elif ".test." in fname or ".spec." in fname:
+            elif (
+                fname.startswith("test_")
+                or fname.endswith("_test.py")
+                or ".test." in fname
+                or ".spec." in fname
+            ):
                 test_files.append(f)
         return test_files
 
-    def _identify_doc_files(self, files: list[str]) -> list[str]:
+    def _identify_doc_files(
+        self, files: list[str]
+    ) -> list[str]:
         """Find documentation files in the changed file list."""
         doc_files = []
         for f in files:
             fname = f.lower()
             if any(doc in fname for doc in DOC_FILES):
                 doc_files.append(f)
-            elif fname.endswith((".md", ".rst", ".mdx", ".txt")):
+            elif fname.endswith(
+                (".md", ".rst", ".mdx", ".txt")
+            ):
                 doc_files.append(f)
         return doc_files
 
-    def _score_description(self, description: str, body: str) -> ScoreDimension:
+    def _score_description(
+        self, description: str, body: str
+    ) -> ScoreDimension:
         """Score description quality heuristically."""
         text = (description + " " + body).strip()
 
@@ -177,8 +204,10 @@ class PRScorer:
             return ScoreDimension(
                 name="description_quality",
                 score=0,
-                weight=self.DIMENSION_WEIGHTS["description_quality"],
-                reason="No meaningful description provided",
+                weight=self.DIMENSION_WEIGHTS[
+                    "description_quality"
+                ],
+                reason="No meaningful description",
             )
 
         score = 0
@@ -196,17 +225,17 @@ class PRScorer:
 
         # Structural elements (up to 40 points)
         if "##" in text or "###" in text:
-            score += 15  # Has sections
+            score += 15
         if "- " in text or "* " in text:
-            score += 10  # Has bullet points
+            score += 10
         if "```" in text:
-            score += 10  # Has code examples
+            score += 10
         if "screenshot" in text.lower() or "![" in text:
-            score += 5   # Has screenshots
+            score += 5
 
         # Quality markers (up to 20 points)
         if "fix" in text.lower() and "#" in text:
-            score += 10  # References issue
+            score += 10
         if "test" in text.lower():
             score += 5
         if "breaking change" in text.lower():
@@ -215,12 +244,16 @@ class PRScorer:
         return ScoreDimension(
             name="description_quality",
             score=min(score, 100),
-            weight=self.DIMENSION_WEIGHTS["description_quality"],
+            weight=self.DIMENSION_WEIGHTS[
+                "description_quality"
+            ],
             reason=f"Description has {word_count} words",
         )
 
     def _score_tests(
-        self, test_files: list[str], all_files: list[str]
+        self,
+        test_files: list[str],
+        all_files: list[str]
     ) -> ScoreDimension:
         """Score test coverage."""
         if not all_files:
@@ -239,21 +272,31 @@ class PRScorer:
                 reason="No test files included",
             )
 
-        # Ratio of test files to all files
         test_ratio = len(test_files) / len(all_files)
 
         if test_ratio >= 0.4:
             score = 100
-            reason = f"Excellent test coverage: {len(test_files)} test files"
+            reason = (
+                f"Excellent test coverage: "
+                f"{len(test_files)} test files"
+            )
         elif test_ratio >= 0.2:
             score = 80
-            reason = f"Good test coverage: {len(test_files)} test files"
+            reason = (
+                f"Good test coverage: "
+                f"{len(test_files)} test files"
+            )
         elif test_ratio >= 0.1:
             score = 60
-            reason = f"Some tests included: {len(test_files)} test files"
+            reason = (
+                f"Some tests: {len(test_files)} test files"
+            )
         else:
             score = 40
-            reason = f"Minimal test coverage: {len(test_files)} test files"
+            reason = (
+                f"Minimal coverage: "
+                f"{len(test_files)} test files"
+            )
 
         return ScoreDimension(
             name="test_coverage",
@@ -275,16 +318,17 @@ class PRScorer:
             score += 60
             score += min(len(doc_files) * 10, 30)
 
-        # Docs in description
         if description and len(description) > 100:
             score += 10
 
         if score == 0:
-            # Not all PRs need docs — give partial credit
             score = 40
-            reason = "No doc files (may be acceptable for this PR type)"
+            reason = "No doc files (may be acceptable)"
         else:
-            reason = f"Includes {len(doc_files)} documentation file(s)"
+            reason = (
+                f"Includes {len(doc_files)} "
+                f"documentation file(s)"
+            )
 
         return ScoreDimension(
             name="documentation",
@@ -311,22 +355,36 @@ class PRScorer:
                 reason="No file change information",
             )
 
-        # Small, focused PRs are easier to review
         if file_count <= 3 and total_changes <= 100:
             score = 100
-            reason = f"Focused PR: {file_count} files, {total_changes} changes"
+            reason = (
+                f"Focused: {file_count} files, "
+                f"{total_changes} changes"
+            )
         elif file_count <= 10 and total_changes <= 500:
             score = 80
-            reason = f"Reasonable scope: {file_count} files, {total_changes} changes"
+            reason = (
+                f"Reasonable: {file_count} files, "
+                f"{total_changes} changes"
+            )
         elif file_count <= 20 and total_changes <= 1000:
             score = 60
-            reason = f"Large PR: {file_count} files, {total_changes} changes"
+            reason = (
+                f"Large: {file_count} files, "
+                f"{total_changes} changes"
+            )
         elif file_count <= 50:
             score = 40
-            reason = f"Very large PR: {file_count} files — consider splitting"
+            reason = (
+                f"Very large: {file_count} files "
+                f"— consider splitting"
+            )
         else:
             score = 20
-            reason = f"Massive PR: {file_count} files — should be split"
+            reason = (
+                f"Massive: {file_count} files "
+                f"— should be split"
+            )
 
         return ScoreDimension(
             name="scope_focus",
@@ -335,7 +393,9 @@ class PRScorer:
             reason=reason,
         )
 
-    def _score_commits(self, commit_messages: list[str]) -> ScoreDimension:
+    def _score_commits(
+        self, commit_messages: list[str]
+    ) -> ScoreDimension:
         """Score commit message quality."""
         if not commit_messages:
             return ScoreDimension(
@@ -350,18 +410,16 @@ class PRScorer:
             msg_score = 0
             clean = msg.strip()
 
-            # Conventional commits format
             if re.match(
-                r"^(feat|fix|docs|style|refactor|test|chore|perf|ci|build)(\(.+\))?: .+",
+                r"^(feat|fix|docs|style|refactor|test|"
+                r"chore|perf|ci|build)(\(.+\))?: .+",
                 clean,
             ):
                 msg_score = 100
-            # Reasonable length and specificity
             elif len(clean) >= 20 and not re.match(
                 r"^(fix|update|change|wip)\s*$", clean, re.IGNORECASE
             ):
                 msg_score = 70
-            # Too short or generic
             elif len(clean) < 10:
                 msg_score = 20
             else:
@@ -369,7 +427,7 @@ class PRScorer:
 
             scores.append(msg_score)
 
-        avg_score = sum(scores) // len(scores)
+        avg_score = sum(scores) // len(scores) if scores else 40
         return ScoreDimension(
             name="commit_quality",
             score=avg_score,
@@ -386,7 +444,6 @@ class PRScorer:
         """Score whether PR is linked to an issue."""
         text = (description + " " + body).lower()
 
-        # Check for issue references in text
         has_ref = bool(
             re.search(r"(closes|fixes|resolves|related to)\s+#\d+", text)
             or re.search(r"#\d{1,6}", text)
@@ -501,6 +558,3 @@ class PRScorer:
                 suggestions.append("link to a related issue")
 
         return f"To improve this PR: {', '.join(suggestions)}."
-
-
-import re

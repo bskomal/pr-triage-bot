@@ -3,12 +3,13 @@ PR Triage Bot CLI — Main entry point.
 """
 
 import asyncio
+import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 import click
+import structlog
 import yaml
 from dotenv import load_dotenv
 from rich.console import Console
@@ -18,11 +19,38 @@ from rich.table import Table
 load_dotenv()
 console = Console()
 
+# ─── Setup logging ────────────────────────────
+Path("logs").mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(
+            "logs/triage.log",
+            encoding="utf-8"
+        ),
+    ]
+)
+
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="ISO"),
+        structlog.stdlib.add_log_level,
+        structlog.dev.ConsoleRenderer(),
+    ],
+    logger_factory=structlog.stdlib.LoggerFactory(),
+)
+
 
 def load_config(config_path: str) -> dict:
     path = Path(config_path)
     if not path.exists():
-        default_path = Path(__file__).parent.parent.parent / "config" / "default.yml"
+        default_path = (
+            Path(__file__).parent.parent.parent
+            / "config"
+            / "default.yml"
+        )
         if default_path.exists():
             path = default_path
         else:
@@ -54,9 +82,13 @@ def cli(ctx, config, debug):
     ctx.obj["config"] = load_config(config)
     ctx.obj["debug"] = debug
 
+    if debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     console.print(
         Panel.fit(
-            "[bold blue]PR Triage Bot[/bold blue] [dim]v1.0.0[/dim]",
+            "[bold blue]PR Triage Bot[/bold blue] "
+            "[dim]v1.0.0[/dim]",
             border_style="blue",
         )
     )
@@ -66,7 +98,7 @@ def cli(ctx, config, debug):
 @click.option(
     "--repo",
     required=True,
-    help="GitHub repo in format owner/repo"
+    help="GitHub repo: owner/repo"
 )
 @click.option(
     "--token",
@@ -91,7 +123,7 @@ def cli(ctx, config, debug):
     "--provider",
     default="ollama",
     type=click.Choice(["ollama", "openai"]),
-    help="AI provider to use"
+    help="AI provider"
 )
 @click.option(
     "--model",
@@ -99,22 +131,38 @@ def cli(ctx, config, debug):
     help="AI model name"
 )
 @click.pass_context
-def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
+def analyze_pr(
+    ctx, repo, token, pr_number,
+    dry_run, provider, model
+):
     """Analyze a single pull request."""
 
-    console.print(f"[cyan]Analyzing PR #{pr_number} in {repo}[/cyan]")
-    console.print(f"[dim]Provider: {provider} | Model: {model}[/dim]")
+    console.print(
+        f"[cyan]Analyzing PR #{pr_number} "
+        f"in {repo}[/cyan]"
+    )
+    console.print(
+        f"[dim]Provider: {provider} | "
+        f"Model: {model}[/dim]"
+    )
 
     if dry_run:
-        console.print("[yellow]DRY RUN MODE — No changes will be made[/yellow]")
+        console.print(
+            "[yellow]DRY RUN — No changes will "
+            "be made[/yellow]"
+        )
 
     async def _run():
         try:
-            from src.ai.llm_client import LLMClient, LLMConfig, LLMProvider
+            from src.ai.llm_client import (
+                LLMClient, LLMConfig, LLMProvider
+            )
             from src.core.analyzer import Analyzer
             from src.github.client import GitHubClient
 
-            console.print("[dim]Connecting to GitHub...[/dim]")
+            console.print(
+                "[dim]Connecting to GitHub...[/dim]"
+            )
             github = GitHubClient(
                 token=token,
                 repo_name=repo,
@@ -122,15 +170,21 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
 
             console.print("[dim]Loading PRs...[/dim]")
             prs = github.get_open_prs(max_count=200)
-            pr = next((p for p in prs if p.number == pr_number), None)
+            pr = next(
+                (p for p in prs if p.number == pr_number),
+                None
+            )
 
             if not pr:
                 console.print(
-                    f"[red]PR #{pr_number} not found or not open[/red]"
+                    f"[red]PR #{pr_number} not found "
+                    f"or not open[/red]"
                 )
                 return
 
-            console.print(f"[green]Found PR: {pr.title}[/green]")
+            console.print(
+                f"[green]Found PR: {pr.title}[/green]"
+            )
 
             llm_config = LLMConfig(
                 provider=LLMProvider(provider),
@@ -138,7 +192,9 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
                 openai_api_key=os.getenv("OPENAI_API_KEY"),
             )
 
-            console.print("[dim]Starting AI analysis...[/dim]")
+            console.print(
+                "[dim]Starting AI analysis...[/dim]"
+            )
 
             async with LLMClient(llm_config) as llm:
                 analyzer = Analyzer(
@@ -148,25 +204,28 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
                 )
                 result = await analyzer.analyze_pr(pr)
 
-            # Display Results
+            # ── Display Results ──────────────────
             console.print("\n")
             console.print(
                 Panel(
                     f"[bold]Title:[/bold] {pr.title}\n"
                     f"[bold]Author:[/bold] @{pr.author}\n"
                     f"[bold]Changes:[/bold] "
-                    f"+{pr.additions} / -{pr.deletions} | "
-                    f"{len(pr.files_changed)} files",
+                    f"+{pr.additions} / -{pr.deletions}"
+                    f" | {len(pr.files_changed)} files",
                     title=f"PR #{pr.number}",
                     border_style="blue",
                 )
             )
 
-            # Quality Score Table
+            # Quality Score
             quality = result.quality_score
             table = Table(
-                title=f"Quality Score: {quality.emoji} "
-                      f"{quality.overall}/100 ({quality.tier})"
+                title=(
+                    f"Quality Score: {quality.emoji} "
+                    f"{quality.overall}/100 "
+                    f"({quality.tier})"
+                )
             )
             table.add_column("Dimension", style="cyan")
             table.add_column("Score", style="bold")
@@ -187,15 +246,22 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
 
             # Slop Detection
             slop = result.slop_result
-            slop_color = "red" if slop.is_suspected_slop else "green"
+            slop_color = (
+                "red" if slop.is_suspected_slop
+                else "green"
+            )
             console.print(
                 Panel(
                     f"[bold]Suspected Slop:[/bold] "
-                    f"[{slop_color}]{slop.is_suspected_slop}[/{slop_color}]\n"
-                    f"[bold]Confidence:[/bold] {slop.confidence:.0%}\n"
-                    f"[bold]Severity:[/bold] {slop.severity}\n"
+                    f"[{slop_color}]"
+                    f"{slop.is_suspected_slop}"
+                    f"[/{slop_color}]\n"
+                    f"[bold]Confidence:[/bold] "
+                    f"{slop.confidence:.0%}\n"
+                    f"[bold]Severity:[/bold] "
+                    f"{slop.severity}\n"
                     f"[bold]Signals:[/bold] "
-                    f"{', '.join(slop.signal_names) or 'None detected'}",
+                    f"{', '.join(slop.signal_names) or 'None'}",
                     title="Slop Detection",
                     border_style=slop_color,
                 )
@@ -205,11 +271,11 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
             console.print(
                 Panel(
                     f"[bold]Type:[/bold] "
-                    f"{result.classification.get('type', 'unknown')}\n"
+                    f"{result.classification.get('type', '?')}\n"
                     f"[bold]Priority:[/bold] "
-                    f"{result.classification.get('priority', 'unknown')}\n"
+                    f"{result.classification.get('priority', '?')}\n"
                     f"[bold]Complexity:[/bold] "
-                    f"{result.classification.get('complexity', 'unknown')}",
+                    f"{result.classification.get('complexity', '?')}",
                     title="Classification",
                     border_style="blue",
                 )
@@ -233,7 +299,7 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
                 )
 
             console.print(
-                f"\n[green]Analysis complete in "
+                f"\n[green]✅ Analysis complete in "
                 f"{result.analysis_time_ms}ms[/green]"
             )
 
@@ -247,11 +313,22 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
 
 
 @cli.command(name="triage")
-@click.option("--repo", required=True, help="GitHub repo owner/repo")
-@click.option("--token", envvar="GITHUB_TOKEN", required=True)
+@click.option(
+    "--repo", required=True,
+    help="GitHub repo owner/repo"
+)
+@click.option(
+    "--token",
+    envvar="GITHUB_TOKEN",
+    required=True
+)
 @click.option("--max-prs", default=50, type=int)
 @click.option("--max-issues", default=100, type=int)
-@click.option("--dry-run", is_flag=True, default=False)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False
+)
 @click.option(
     "--provider",
     default="ollama",
@@ -264,26 +341,31 @@ def analyze_pr(ctx, repo, token, pr_number, dry_run, provider, model):
     type=click.Choice(["markdown", "slack", "discord"])
 )
 @click.pass_context
-def triage(ctx, repo, token, max_prs, max_issues,
-           dry_run, provider, model, output):
+def triage(
+    ctx, repo, token, max_prs,
+    max_issues, dry_run, provider, model, output
+):
     """Run full repository triage."""
-
-    console.print(f"[cyan]Running full triage on {repo}[/cyan]")
+    console.print(
+        f"[cyan]Running full triage on {repo}[/cyan]"
+    )
 
     if dry_run:
         console.print("[yellow]DRY RUN MODE[/yellow]")
 
     async def _run():
         try:
-            from src.ai.llm_client import LLMClient, LLMConfig, LLMProvider
+            from src.ai.llm_client import (
+                LLMClient, LLMConfig, LLMProvider
+            )
             from src.core.analyzer import Analyzer
             from src.digest.generator import DigestGenerator
             from src.github.client import GitHubClient
 
-            config = ctx.obj.get("config", {})
-
-            github = GitHubClient(token=token, repo_name=repo)
-
+            github = GitHubClient(
+                token=token,
+                repo_name=repo
+            )
             llm_config = LLMConfig(
                 provider=LLMProvider(provider),
                 model=model,
@@ -296,14 +378,14 @@ def triage(ctx, repo, token, max_prs, max_issues,
                     github_client=github,
                     dry_run=dry_run,
                 )
-
-                console.print("[dim]Running triage...[/dim]")
+                console.print(
+                    "[dim]Running triage...[/dim]"
+                )
                 report = await analyzer.run_full_triage(
                     max_prs=max_prs,
                     max_issues=max_issues,
                 )
 
-            # Display summary
             stats = report.stats
             console.print(
                 Panel(
@@ -311,11 +393,11 @@ def triage(ctx, repo, token, max_prs, max_issues,
                     f"{stats['total_prs_analyzed']}\n"
                     f"[bold]Issues Analyzed:[/bold] "
                     f"{stats['total_issues_analyzed']}\n"
-                    f"[bold]Critical PRs:[/bold] "
+                    f"[bold]Critical:[/bold] "
                     f"[red]{stats['critical_prs']}[/red]\n"
-                    f"[bold]Flagged PRs:[/bold] "
+                    f"[bold]Flagged:[/bold] "
                     f"[yellow]{stats['slop_flagged']}[/yellow]\n"
-                    f"[bold]Excellent PRs:[/bold] "
+                    f"[bold]Excellent:[/bold] "
                     f"[green]{stats['excellent_quality']}[/green]\n"
                     f"[bold]Avg Quality:[/bold] "
                     f"{stats['avg_quality_score']}/100",
@@ -324,15 +406,21 @@ def triage(ctx, repo, token, max_prs, max_issues,
                 )
             )
 
-            # Save digest
-            digest = DigestGenerator().generate(report, format=output)
+            digest = DigestGenerator().generate(
+                report, format=output
+            )
             output_path = Path(
                 f"triage-digest-"
-                f"{report.generated_at.strftime('%Y%m%d-%H%M')}.md"
+                f"{report.generated_at.strftime('%Y%m%d-%H%M')}"
+                f".md"
             )
-            output_path.write_text(digest)
+            output_path.write_text(
+                digest,
+                encoding="utf-8"
+            )
             console.print(
-                f"[green]Digest saved to: {output_path}[/green]"
+                f"[green]✅ Digest saved: "
+                f"{output_path}[/green]"
             )
 
         except Exception as e:
@@ -346,13 +434,20 @@ def triage(ctx, repo, token, max_prs, max_issues,
 
 @cli.command(name="stats")
 @click.option("--repo", required=True)
-@click.option("--token", envvar="GITHUB_TOKEN", required=True)
+@click.option(
+    "--token",
+    envvar="GITHUB_TOKEN",
+    required=True
+)
 def stats(repo, token):
     """Show repository statistics."""
     try:
         from src.github.client import GitHubClient
 
-        github = GitHubClient(token=token, repo_name=repo)
+        github = GitHubClient(
+            token=token,
+            repo_name=repo
+        )
 
         with console.status("Fetching stats..."):
             repo_stats = github.get_repo_stats()
@@ -361,8 +456,14 @@ def stats(repo, token):
         table.add_column("Metric", style="cyan")
         table.add_column("Value", style="bold white")
         table.add_row("Open PRs", str(repo_stats.open_prs))
-        table.add_row("Open Issues", str(repo_stats.open_issues))
-        table.add_row("Needs Triage", str(repo_stats.needs_triage))
+        table.add_row(
+            "Open Issues",
+            str(repo_stats.open_issues)
+        )
+        table.add_row(
+            "Needs Triage",
+            str(repo_stats.needs_triage)
+        )
         console.print(table)
 
     except Exception as e:
