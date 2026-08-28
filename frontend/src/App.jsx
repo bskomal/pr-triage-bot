@@ -5,6 +5,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import Navbar from './components/Navbar'
 import ParticleBackground from './components/ParticleBackground'
 import Dashboard from './pages/Dashboard'
+import PRList from './pages/PRList'
+import PRDetail from './pages/PRDetail'
+import DigestList from './pages/DigestList'
+import RepoHealth from './pages/RepoHealth'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,17 +43,17 @@ export default function App() {
           <div className="
             fixed top-1/4 left-1/4 w-96 h-96
             bg-blue-500/5 rounded-full blur-3xl
-            pointer-events-none
+            pointer-events-none animate-float-slow
           " />
           <div className="
             fixed bottom-1/4 right-1/4 w-96 h-96
             bg-purple-500/5 rounded-full blur-3xl
-            pointer-events-none
+            pointer-events-none animate-float
           " />
           <div className="
-            fixed top-1/2 left-1/2 w-64 h-64
-            bg-cyan-500/3 rounded-full blur-3xl
-            pointer-events-none
+            fixed top-3/4 left-3/4 w-64 h-64
+            bg-green-500/3 rounded-full blur-3xl
+            pointer-events-none animate-float-fast
           " />
 
           {/* Navbar */}
@@ -63,6 +67,38 @@ export default function App() {
                 element={
                   <PageWrapper>
                     <Dashboard />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/prs"
+                element={
+                  <PageWrapper>
+                    <PRList />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/pr/:owner/:repo/:number"
+                element={
+                  <PageWrapper>
+                    <PRDetail />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/digests"
+                element={
+                  <PageWrapper>
+                    <DigestList />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/health"
+                element={
+                  <PageWrapper>
+                    <RepoHealth />
                   </PageWrapper>
                 }
               />
