@@ -185,7 +185,7 @@ class PRScorer:
         """Find documentation files in the changed file list."""
         doc_files = []
         for f in files:
-            fname = f.lower()
+            fname = f.lower().replace("\\", "/")
             if any(doc in fname for doc in DOC_FILES):
                 doc_files.append(f)
             elif fname.endswith(
@@ -198,7 +198,10 @@ class PRScorer:
         self, description: str, body: str
     ) -> ScoreDimension:
         """Score description quality heuristically."""
-        text = (description + " " + body).strip()
+        if description and body and description.strip() == body.strip():
+            text = description.strip()
+        else:
+            text = (description + " " + body).strip()
 
         if not text or len(text) < 20:
             return ScoreDimension(
@@ -262,6 +265,27 @@ class PRScorer:
                 score=50,
                 weight=self.DIMENSION_WEIGHTS["test_coverage"],
                 reason="No file information available",
+            )
+
+        doc_or_non_code_exts = (
+            ".md", ".rst", ".txt", ".png", ".jpg", ".jpeg", ".svg",
+            ".gif", ".ico", ".pdf", ".json", ".yaml", ".yml", ".toml"
+        )
+        code_files = [
+            f for f in all_files
+            if not f.lower().endswith(doc_or_non_code_exts)
+            and not any(
+                d in f.lower().replace("\\", "/").split("/")
+                for d in ("docs", "documentation")
+            )
+        ]
+
+        if not code_files:
+            return ScoreDimension(
+                name="test_coverage",
+                score=100,
+                weight=self.DIMENSION_WEIGHTS["test_coverage"],
+                reason="Documentation/non-code PR — tests not required",
             )
 
         if not test_files:
@@ -414,6 +438,7 @@ class PRScorer:
                 r"^(feat|fix|docs|style|refactor|test|"
                 r"chore|perf|ci|build)(\(.+\))?: .+",
                 clean,
+                re.IGNORECASE,
             ):
                 msg_score = 100
             elif len(clean) >= 20 and not re.match(
@@ -501,15 +526,19 @@ class PRScorer:
         for dim in heuristic_dims:
             llm_score = llm_map.get(dim.name)
             if llm_score is not None:
-                blended = int(dim.score * 0.4 + int(llm_score) * 0.6)
-                merged.append(
-                    ScoreDimension(
-                        name=dim.name,
-                        score=min(blended, 100),
-                        weight=dim.weight,
-                        reason=dim.reason,
+                try:
+                    int_llm_score = int(llm_score)
+                    blended = int(dim.score * 0.4 + int_llm_score * 0.6)
+                    merged.append(
+                        ScoreDimension(
+                            name=dim.name,
+                            score=min(max(blended, 0), 100),
+                            weight=dim.weight,
+                            reason=dim.reason,
+                        )
                     )
-                )
+                except (ValueError, TypeError):
+                    merged.append(dim)
             else:
                 merged.append(dim)
 
@@ -518,7 +547,7 @@ class PRScorer:
     def _compute_overall(self, dimensions: list[ScoreDimension]) -> int:
         """Weighted average across all dimensions."""
         total = sum(d.score * d.weight for d in dimensions)
-        return int(min(total, 100))
+        return int(min(round(total), 100))
 
     def _compute_tier(self, score: int) -> str:
         if score >= 80:

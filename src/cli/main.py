@@ -22,22 +22,19 @@ console = Console()
 # ─── Setup logging ────────────────────────────
 Path("logs").mkdir(exist_ok=True)
 
+file_handler = logging.FileHandler("logs/triage.log", encoding="utf-8")
+file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler(
-            "logs/triage.log",
-            encoding="utf-8"
-        ),
-    ]
+    handlers=[file_handler],
 )
 
 structlog.configure(
     processors=[
         structlog.processors.TimeStamper(fmt="ISO"),
         structlog.stdlib.add_log_level,
-        structlog.dev.ConsoleRenderer(),
+        structlog.processors.JSONRenderer(),
     ],
     logger_factory=structlog.stdlib.LoggerFactory(),
 )
@@ -84,6 +81,14 @@ def cli(ctx, config, debug):
 
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
+        structlog.configure(
+            processors=[
+                structlog.processors.TimeStamper(fmt="ISO"),
+                structlog.stdlib.add_log_level,
+                structlog.dev.ConsoleRenderer(),
+            ],
+            logger_factory=structlog.stdlib.LoggerFactory(),
+        )
 
     console.print(
         Panel.fit(

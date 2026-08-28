@@ -68,3 +68,59 @@
 2026-08-26 21:17:49,705 [INFO] HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
 2026-08-26 21:17:49,705 [INFO] [2m2026-08-26T15:47:49.705569Z[0m [[32m[1minfo     [0m] [1mScoring complete              [0m [36moverall[0m=[35m44[0m [36mtier[0m=[35mneeds-work[0m
 2026-08-26 21:17:49,705 [INFO] [2m2026-08-26T15:47:49.705687Z[0m [[32m[1minfo     [0m] [1mPR analysis complete          [0m [36melapsed_ms[0m=[35m4412[0m [36mis_slop[0m=[35mFalse[0m [36mlabels_applied[0m=[35m['type: docs', 'priority: low', 'quality: needs-work'][0m [36mpr_number[0m=[35m1[0m [36mpriority[0m=[35mlow[0m [36mquality_tier[0m=[35mneeds-work[0m
+2026-08-27 22:37:41,423 [INFO] [2m2026-08-27T17:07:41.423622Z[0m [[32m[1minfo     [0m] [1mGitHub client initialized     [0m [36mrepo[0m=[35mowner/repo[0m
+2026-08-27 22:37:42,175 [WARNING] [2m2026-08-27T17:07:42.175543Z[0m [[33m[1mwarning  [0m] [1mFailed to check rate limit    [0m [36merror[0m=[35m"'RateLimitOverview' object has no attribute 'core'"[0m
+2026-08-27 22:37:42,779 [ERROR] [2m2026-08-27T17:07:42.779368Z[0m [[31m[1merror    [0m] [1mFailed to fetch open PRs      [0m [36merror[0m=[35m'404 {"message": "Not Found", "documentation_url": "https://docs.github.com/rest/repos/repos#get-a-repository", "status": "404"}'[0m
+2026-08-27 22:37:42,779 [INFO] [2m2026-08-27T17:07:42.779673Z[0m [[32m[1minfo     [0m] [1mFetched open PRs              [0m [36mcount[0m=[35m0[0m
+2026-08-27 22:39:03,362 [INFO] [2m2026-08-27T17:09:03.362188Z[0m [[32m[1minfo     [0m] [1mGitHub client initialized     [0m [36mrepo[0m=[35mowner/repo[0m
+2026-08-27 22:39:03,479 [INFO] [2m2026-08-27T17:09:03.479278Z[0m [[32m[1minfo     [0m] [1mLLM client initialized        [0m [36mmodel[0m=[35mllama3.2[0m [36mprovider[0m=[35mollama[0m
+2026-08-27 22:39:03,479 [INFO] [2m2026-08-27T17:09:03.479518Z[0m [[32m[1minfo     [0m] [1mAnalyzer initialized          [0m [36mdry_run[0m=[35mTrue[0m
+2026-08-27 22:39:03,480 [INFO] [2m2026-08-27T17:09:03.480287Z[0m [[32m[1minfo     [0m] [1mStarting full triage          [0m [36mmax_issues[0m=[35m100[0m [36mmax_prs[0m=[35m50[0m [36mrepo[0m=[35mowner/repo[0m
+2026-08-27 22:39:04,150 [WARNING] [2m2026-08-27T17:09:04.150756Z[0m [[33m[1mwarning  [0m] [1mFailed to check rate limit    [0m [36merror[0m=[35m"'RateLimitOverview' object has no attribute 'core'"[0m
+2026-08-27 22:39:05,327 [ERROR] [2m2026-08-27T17:09:05.327766Z[0m [[31m[1merror    [0m] [1mFailed to fetch open PRs      [0m [36merror[0m=[35m'404 {"message": "Not Found", "documentation_url": "https://docs.github.com/rest/repos/repos#get-a-repository", "status": "404"}'[0m
+2026-08-27 22:39:05,328 [INFO] [2m2026-08-27T17:09:05.328194Z[0m [[32m[1minfo     [0m] [1mFetched open PRs              [0m [36mcount[0m=[35m0[0m
+2026-08-27 22:39:06,303 [WARNING] [2m2026-08-27T17:09:06.303489Z[0m [[33m[1mwarning  [0m] [1mFailed to check rate limit    [0m [36merror[0m=[35m"'RateLimitOverview' object has no attribute 'core'"[0m
+2026-08-27 22:39:06,928 [ERROR] [2m2026-08-27T17:09:06.928130Z[0m [[31m[1merror    [0m] [1mFailed to fetch open issues   [0m [36merror[0m=[35m'404 {"message": "Not Found", "documentation_url": "https://docs.github.com/rest/repos/repos#get-a-repository", "status": "404"}'[0m
+2026-08-27 22:39:06,928 [INFO] [2m2026-08-27T17:09:06.928535Z[0m [[32m[1minfo     [0m] [1mFetched open issues           [0m [36mcount[0m=[35m0[0m
+2026-08-27 22:39:06,931 [INFO] [2m2026-08-27T17:09:06.931054Z[0m [[32m[1minfo     [0m] [1mFull triage complete          [0m [36mcritical_prs[0m=[35m0[0m [36mflagged_prs[0m=[35m0[0m [36missues_analyzed[0m=[35m0[0m [36mprs_analyzed[0m=[35m0[0m
+2026-08-27 22:39:06,941 [INFO] [2m2026-08-27T17:09:06.941154Z[0m [[32m[1minfo     [0m] [1mGenerating digest             [0m [36mformat[0m=[35mmarkdown[0m [36mprs[0m=[35m0[0m [36mrepo[0m=[35mowner/repo[0m
+2026-08-28 20:47:10,302 [INFO] [2m2026-08-28T15:17:10.302458Z[0m [[32m[1minfo     [0m] [1mGitHub client initialized     [0m [36mrepo[0m=[35mbskomal/pr-triage-bot[0m
+2026-08-28 20:47:11,098 [WARNING] [2m2026-08-28T15:17:11.098615Z[0m [[33m[1mwarning  [0m] [1mFailed to check rate limit    [0m [36merror[0m=[35m"'RateLimitOverview' object has no attribute 'core'"[0m
+2026-08-28 20:47:16,257 [INFO] [2m2026-08-28T15:17:16.257163Z[0m [[32m[1minfo     [0m] [1mFetched open PRs              [0m [36mcount[0m=[35m1[0m
+2026-08-28 20:47:16,484 [INFO] [2m2026-08-28T15:17:16.484659Z[0m [[32m[1minfo     [0m] [1mLLM client initialized        [0m [36mmodel[0m=[35mllama3.2[0m [36mprovider[0m=[35mollama[0m
+2026-08-28 20:47:16,485 [INFO] [2m2026-08-28T15:17:16.484981Z[0m [[32m[1minfo     [0m] [1mSupabase client initialized   [0m [36murl[0m=[35mhttps://yjkfrgsewxfytiajyjwm.supabase.co[0m
+2026-08-28 20:47:16,485 [INFO] [2m2026-08-28T15:17:16.485117Z[0m [[32m[1minfo     [0m] [1mAnalyzer initialized          [0m [36mdry_run[0m=[35mFalse[0m [36msupabase_enabled[0m=[35mTrue[0m
+2026-08-28 20:47:16,485 [INFO] [2m2026-08-28T15:17:16.485217Z[0m [[32m[1minfo     [0m] [1mAnalyzing PR                  [0m [36mpr_number[0m=[35m1[0m [36mtitle[0m=[35m'Update README with test PR message'[0m
+2026-08-28 20:47:17,182 [WARNING] [2m2026-08-28T15:17:17.181976Z[0m [[33m[1mwarning  [0m] [1mFailed to check rate limit    [0m [36merror[0m=[35m"'RateLimitOverview' object has no attribute 'core'"[0m
+2026-08-28 20:47:18,869 [INFO] [2m2026-08-28T15:17:18.868951Z[0m [[32m[1minfo     [0m] [1mScoring PR quality            [0m [36mtitle[0m=[35m'Update README with test PR message'[0m
+2026-08-28 20:47:18,870 [INFO] [2m2026-08-28T15:17:18.870773Z[0m [[32m[1minfo     [0m] [1mRunning slop detection        [0m [36mpr_title[0m=[35m'Update README with test PR message'[0m
+2026-08-28 20:47:18,873 [INFO] [2m2026-08-28T15:17:18.873640Z[0m [[32m[1minfo     [0m] [1mSlop detection complete       [0m [36mconfidence[0m=[35m0.11538461538461538[0m [36mis_slop[0m=[35mFalse[0m [36mseverity[0m=[35mlow[0m [36msignals[0m=[35m['minimal_description'][0m
+2026-08-28 20:47:30,846 [INFO] HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-08-28 20:47:30,847 [INFO] [2m2026-08-28T15:17:30.847052Z[0m [[32m[1minfo     [0m] [1mScoring complete              [0m [36moverall[0m=[35m58[0m [36mtier[0m=[35mneeds-work[0m
+2026-08-28 20:47:31,490 [INFO] HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-08-28 20:47:31,927 [WARNING] [2m2026-08-28T15:17:31.926895Z[0m [[33m[1mwarning  [0m] [1mFailed to check rate limit    [0m [36merror[0m=[35m"'RateLimitOverview' object has no attribute 'core'"[0m
+2026-08-28 20:47:35,048 [INFO] [2m2026-08-28T15:17:35.048824Z[0m [[32m[1minfo     [0m] [1mLabels added                  [0m [36mlabels[0m=[35m['type: docs', 'priority: low', 'quality: needs-work'][0m [36mnumber[0m=[35m1[0m [36mtype[0m=[35mPR[0m
+2026-08-28 20:47:36,635 [INFO] HTTP Request: POST https://yjkfrgsewxfytiajyjwm.supabase.co/rest/v1/pr_analyses "HTTP/1.1 201 Created"
+2026-08-28 20:47:36,635 [INFO] [2m2026-08-28T15:17:36.635827Z[0m [[32m[1minfo     [0m] [1mSaved to Supabase             [0m [36mtable[0m=[35mpr_analyses[0m
+2026-08-28 20:47:37,454 [INFO] HTTP Request: POST https://yjkfrgsewxfytiajyjwm.supabase.co/rest/v1/repo_stats "HTTP/1.1 201 Created"
+2026-08-28 20:47:37,455 [INFO] [2m2026-08-28T15:17:37.455523Z[0m [[32m[1minfo     [0m] [1mPR analysis complete          [0m [36melapsed_ms[0m=[35m18563[0m [36mis_slop[0m=[35mFalse[0m [36mlabels_applied[0m=[35m['type: docs', 'priority: low', 'quality: needs-work'][0m [36mpr_number[0m=[35m1[0m [36mpriority[0m=[35mlow[0m [36mquality_score[0m=[35m58[0m [36mquality_tier[0m=[35mneeds-work[0m
+2026-08-28 20:50:06,983 [INFO] {"repo": "bskomal/pr-triage-bot", "event": "GitHub client initialized", "timestamp": "2026-08-28T15:20:06.983722Z", "level": "info"}
+2026-08-28 20:50:07,881 [WARNING] {"error": "'RateLimitOverview' object has no attribute 'core'", "event": "Failed to check rate limit", "timestamp": "2026-08-28T15:20:07.881232Z", "level": "warning"}
+2026-08-28 20:50:12,388 [INFO] {"count": 1, "event": "Fetched open PRs", "timestamp": "2026-08-28T15:20:12.387959Z", "level": "info"}
+2026-08-28 20:50:12,611 [INFO] {"provider": "ollama", "model": "llama3.2", "event": "LLM client initialized", "timestamp": "2026-08-28T15:20:12.611568Z", "level": "info"}
+2026-08-28 20:50:12,611 [INFO] {"url": "https://yjkfrgsewxfytiajyjwm.supabase.co", "event": "Supabase client initialized", "timestamp": "2026-08-28T15:20:12.611833Z", "level": "info"}
+2026-08-28 20:50:12,612 [INFO] {"dry_run": false, "supabase_enabled": true, "event": "Analyzer initialized", "timestamp": "2026-08-28T15:20:12.612018Z", "level": "info"}
+2026-08-28 20:50:12,612 [INFO] {"pr_number": 1, "title": "Update README with test PR message", "event": "Analyzing PR", "timestamp": "2026-08-28T15:20:12.612190Z", "level": "info"}
+2026-08-28 20:50:13,103 [WARNING] {"error": "'RateLimitOverview' object has no attribute 'core'", "event": "Failed to check rate limit", "timestamp": "2026-08-28T15:20:13.103761Z", "level": "warning"}
+2026-08-28 20:50:17,447 [INFO] {"title": "Update README with test PR message", "event": "Scoring PR quality", "timestamp": "2026-08-28T15:20:17.447662Z", "level": "info"}
+2026-08-28 20:50:17,448 [INFO] {"pr_title": "Update README with test PR message", "event": "Running slop detection", "timestamp": "2026-08-28T15:20:17.448912Z", "level": "info"}
+2026-08-28 20:50:17,451 [INFO] {"is_slop": false, "confidence": 0.11538461538461538, "severity": "low", "signals": ["minimal_description"], "event": "Slop detection complete", "timestamp": "2026-08-28T15:20:17.451195Z", "level": "info"}
+2026-08-28 20:50:18,623 [INFO] HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-08-28 20:50:19,531 [INFO] HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+2026-08-28 20:50:19,532 [INFO] {"overall": 58, "tier": "needs-work", "event": "Scoring complete", "timestamp": "2026-08-28T15:20:19.532187Z", "level": "info"}
+2026-08-28 20:50:19,978 [WARNING] {"error": "'RateLimitOverview' object has no attribute 'core'", "event": "Failed to check rate limit", "timestamp": "2026-08-28T15:20:19.978754Z", "level": "warning"}
+2026-08-28 20:50:21,899 [INFO] {"number": 1, "labels": ["type: docs", "priority: low", "quality: needs-work"], "type": "PR", "event": "Labels added", "timestamp": "2026-08-28T15:20:21.899903Z", "level": "info"}
+2026-08-28 20:50:22,754 [INFO] HTTP Request: POST https://yjkfrgsewxfytiajyjwm.supabase.co/rest/v1/pr_analyses "HTTP/1.1 201 Created"
+2026-08-28 20:50:22,755 [INFO] {"table": "pr_analyses", "event": "Saved to Supabase", "timestamp": "2026-08-28T15:20:22.754983Z", "level": "info"}
+2026-08-28 20:50:23,341 [INFO] HTTP Request: POST https://yjkfrgsewxfytiajyjwm.supabase.co/rest/v1/repo_stats "HTTP/1.1 409 Conflict"
+2026-08-28 20:50:23,343 [INFO] {"pr_number": 1, "quality_tier": "needs-work", "quality_score": 58, "is_slop": false, "priority": "low", "labels_applied": ["type: docs", "priority: low", "quality: needs-work"], "elapsed_ms": 9288, "event": "PR analysis complete", "timestamp": "2026-08-28T15:20:23.343328Z", "level": "info"}

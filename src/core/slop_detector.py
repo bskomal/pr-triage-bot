@@ -139,7 +139,11 @@ class SlopDetector:
                     diff_sample=diff_sample,
                 )
                 llm_explanation = llm_result.get("explanation", "")
-                llm_confidence = llm_result.get("confidence", heuristic_score)
+                raw_confidence = llm_result.get("confidence", heuristic_score)
+                try:
+                    llm_confidence = float(raw_confidence)
+                except (ValueError, TypeError):
+                    llm_confidence = heuristic_score
 
                 # Blend heuristic + LLM scores
                 final_confidence = (heuristic_score * 0.4) + (llm_confidence * 0.6)
@@ -277,7 +281,7 @@ class SlopDetector:
         self, commit_messages: list[str]
     ) -> dict[str, str | bool]:
         if not commit_messages:
-            return {"detected": True, "detail": "No commit messages found"}
+            return {"detected": False, "detail": "No commit messages provided"}
 
         generic_count = 0
         for msg in commit_messages:
@@ -299,7 +303,10 @@ class SlopDetector:
         self, description: str
     ) -> dict[str, str | bool]:
         if not description or len(description.strip()) < 20:
-            return {"detected": True, "detail": "Description is empty or too short"}
+            return {
+                "detected": False,
+                "detail": "Description is too short or empty for template markers",
+            }
 
         desc_lower = description.lower()
         markers_found = [
@@ -325,10 +332,19 @@ class SlopDetector:
             if re.search(pattern, desc_lower, re.IGNORECASE):
                 found_phrases.append(pattern[:30])
 
-        detected = len(found_phrases) >= 2
+        explicit_ai_leak = any(
+            re.search(p, desc_lower, re.IGNORECASE)
+            for p in [
+                r"as an ai (language model|assistant)",
+                r"i (cannot|can't) (browse|access|check) the",
+            ]
+        )
+
+        detected = explicit_ai_leak or len(found_phrases) >= 2
         return {
             "detected": detected,
-            "detail": f"Found {len(found_phrases)} AI phrase patterns",
+            "detail": f"Found {len(found_phrases)} AI phrase patterns"
+            + (" (explicit AI leak)" if explicit_ai_leak else ""),
         }
 
     def _check_minimal_description(
@@ -354,14 +370,16 @@ class SlopDetector:
 
         lines = diff_sample.split("\n")
         changed_lines = [
-            l for l in lines if l.startswith("+") or l.startswith("-")
+            l for l in lines
+            if (l.startswith("+") and not l.startswith("+++"))
+            or (l.startswith("-") and not l.startswith("---"))
         ]
 
         if not changed_lines:
             return {"detected": False, "detail": "No changed lines"}
 
         whitespace_lines = [
-            l for l in changed_lines if len(l.strip()) <= 1
+            l for l in changed_lines if len(l[1:].strip()) == 0
         ]
 
         ratio = len(whitespace_lines) / len(changed_lines)
@@ -378,8 +396,27 @@ class SlopDetector:
         if not files_changed:
             return {"detected": False, "detail": "No file information"}
 
-        test_files = [
+        doc_or_non_code_exts = (
+            ".md", ".rst", ".txt", ".png", ".jpg", ".jpeg", ".svg",
+            ".gif", ".ico", ".pdf", ".json", ".yaml", ".yml", ".toml"
+        )
+        code_files = [
             f for f in files_changed
+            if not f.lower().endswith(doc_or_non_code_exts)
+            and not any(
+                d in f.lower().replace("\\", "/").split("/")
+                for d in ("docs", "documentation")
+            )
+        ]
+
+        if not code_files:
+            return {
+                "detected": False,
+                "detail": "PR consists solely of documentation or non-code files",
+            }
+
+        test_files = [
+            f for f in code_files
             if "test" in f.lower() or "spec" in f.lower()
         ]
 

@@ -127,3 +127,44 @@ async def test_feedback_generated(scorer):
     )
     assert isinstance(result.feedback, str)
     assert len(result.feedback) > 0
+
+
+@pytest.mark.asyncio
+async def test_doc_only_pr_not_penalized_for_tests(scorer):
+    """Pure documentation PRs should receive 100 on test coverage dimension."""
+    result = await scorer.score(
+        title="docs: update installation instructions in README",
+        description="Updated setup instructions with latest CLI steps.",
+        body="",
+        files_changed=["README.md", "docs/setup.md"],
+        additions=20,
+        deletions=5,
+        commit_messages=["docs: update setup guide"],
+        linked_issues=[],
+    )
+    test_dim = next(d for d in result.dimensions if d.name == "test_coverage")
+    assert test_dim.score == 100
+
+
+@pytest.mark.asyncio
+async def test_windows_path_doc_identification(scorer):
+    """Windows backslash paths should be identified as documentation files."""
+    doc_files = scorer._identify_doc_files(["docs\\architecture.md", "src\\app.py"])
+    assert doc_files == ["docs\\architecture.md"]
+
+
+@pytest.mark.asyncio
+async def test_case_insensitive_conventional_commits(scorer):
+    """Capitalized conventional commit messages should receive full score."""
+    dim = scorer._score_commits(["Feat(auth): add OAuth2 provider", "FIX: resolve deadlock"])
+    assert dim.score == 100
+
+
+@pytest.mark.asyncio
+async def test_safe_llm_score_merge(scorer):
+    """Merging invalid non-int LLM scores should handle conversion gracefully without crashing."""
+    heuristics = [
+        scorer._score_scope(["file.py"], 10, 5)
+    ]
+    merged = scorer._merge_llm_scores(heuristics, {"scope_focus": "invalid-string"})
+    assert len(merged) == len(heuristics)
