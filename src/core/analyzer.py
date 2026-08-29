@@ -417,6 +417,11 @@ class Analyzer:
         # Save to Supabase dashboard
         await self._save_pr_to_supabase(result)
 
+        # Send notifications
+        from src.notifications.manager import NotificationManager
+        notifier = NotificationManager()
+        await notifier.notify_pr_analyzed(result)
+
         logger.info(
             "PR analysis complete",
             pr_number=pr.number,

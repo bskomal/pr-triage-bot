@@ -7,6 +7,8 @@ import ParticleBackground from './components/ParticleBackground'
 import Dashboard from './pages/Dashboard'
 import PRList from './pages/PRList'
 import PRDetail from './pages/PRDetail'
+import Contributors from './pages/Contributors'
+import ContributorDetail from './pages/ContributorDetail'
 import DigestList from './pages/DigestList'
 import RepoHealth from './pages/RepoHealth'
 
@@ -83,6 +85,22 @@ export default function App() {
                 element={
                   <PageWrapper>
                     <PRDetail />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/contributors"
+                element={
+                  <PageWrapper>
+                    <Contributors />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/contributors/:username"
+                element={
+                  <PageWrapper>
+                    <ContributorDetail />
                   </PageWrapper>
                 }
               />

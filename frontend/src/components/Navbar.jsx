@@ -7,11 +7,22 @@ import {
     Activity,
     Bot,
     Zap,
+    Users,
+} from 'lucide-react'
+import {
+    LayoutDashboard,
+    GitPullRequest,
+    Users,
+    FileText,
+    Activity,
+    Bot,
+    Zap,
 } from 'lucide-react'
 
 const links = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/prs', label: 'PRs', icon: GitPullRequest },
+    { to: '/contributors', label: 'Contributors', icon: Users },
     { to: '/digests', label: 'Digests', icon: FileText },
     { to: '/health', label: 'Health', icon: Activity },
 ]

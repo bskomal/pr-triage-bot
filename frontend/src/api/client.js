@@ -182,3 +182,56 @@ export const subscribeToPRs = (callback) => {
         )
         .subscribe()
 }
+
+// ─── Contributor Detail ───────────────────
+export const getContributorDetail = async (username) => {
+    const { data, error } = await supabase
+        .from('pr_analyses')
+        .select('*')
+        .eq('author', username)
+        .order('analyzed_at', { ascending: false })
+
+    if (error) throw error
+    if (!data || data.length === 0) return null
+
+    const prs = data
+    const scores = prs.map(p => p.quality_score || 0)
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length
+    const slopCount = prs.filter(p => p.is_slop).length
+    const slopRate = slopCount / prs.length
+    const excellent = prs.filter(p => p.quality_tier === 'excellent').length
+
+    let trend = 'stable'
+    if (scores.length >= 6) {
+        const recent = scores.slice(-3).reduce((a, b) => a + b, 0) / 3
+        const older = scores.slice(0, 3).reduce((a, b) => a + b, 0) / 3
+        if (recent > older + 10) trend = 'improving'
+        else if (recent < older - 10) trend = 'declining'
+    }
+
+    let rank = 'newcomer'
+    if (slopRate >= 0.5) rank = 'watch'
+    else if (avgScore >= 75 && prs.length >= 5 && slopRate === 0) rank = 'champion'
+    else if (prs.length >= 3 && avgScore >= 50) rank = 'regular'
+
+    let trust = avgScore
+    if (prs.length >= 10) trust += 5
+    if (slopRate === 0) trust += 10
+    if (trend === 'improving') trust += 5
+    trust -= slopRate * 30
+    if (prs.length < 3) trust -= 10
+    trust = Math.max(0, Math.min(100, trust))
+
+    return {
+        username,
+        total_prs: prs.length,
+        avg_score: Math.round(avgScore),
+        excellent_prs: excellent,
+        slop_count: slopCount,
+        slop_rate: Math.round(slopRate * 100),
+        trend,
+        rank,
+        trust_score: Math.round(trust),
+        prs,
+    }
+}
